@@ -1,0 +1,149 @@
+﻿USE [CarRental]
+GO
+/****** Object:  Table [dbo].[Cars]    Script Date: 16.08.2018 23:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Cars](
+	[CarID] [int] IDENTITY(1,1) NOT NULL,
+	[TagNumber] [varchar](20) NULL,
+	[Make] [varchar](50) NULL,
+	[Model] [varchar](50) NOT NULL,
+	[CarYear] [smallint] NULL,
+	[Category] [varchar](50) NULL,
+	[mp3layer] [bit] NULL,
+	[DVDPlayer] [bit] NULL,
+	[AirConditioner] [bit] NULL,
+	[ABS] [bit] NULL,
+	[ASR] [bit] NULL,
+	[Navigation] [bit] NULL,
+	[Available] [bit] NULL,
+ CONSTRAINT [PK_Car] PRIMARY KEY CLUSTERED 
+(
+	[CarID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[Customers]    Script Date: 16.08.2018 23:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Customers](
+	[CustomerID] [int] IDENTITY(1,1) NOT NULL,
+	[DrvLicNumber] [varchar](50) NULL,
+	[FullName] [varchar](80) NULL,
+	[Address] [varchar](100) NOT NULL,
+	[Country] [varchar](100) NOT NULL,
+	[City] [varchar](50) NULL,
+	[State] [varchar](50) NULL,
+	[ZIPCode] [varchar](20) NULL,
+ CONSTRAINT [PK_Customer] PRIMARY KEY CLUSTERED 
+(
+	[CustomerID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[Employees]    Script Date: 16.08.2018 23:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[Employees](
+	[EmployeeID] [int] IDENTITY(1,1) NOT NULL,
+	[EmployeeNumber] [nchar](5) NULL,
+	[FirstName] [varchar](32) NULL,
+	[LastName] [varchar](32) NOT NULL,
+	[FullName]  AS (([LastName]+', ')+[FirstName]),
+	[Title] [varchar](80) NULL,
+	[HourlySalary] [smallmoney] NULL,
+ CONSTRAINT [PK_Employees] PRIMARY KEY CLUSTERED 
+(
+	[EmployeeID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[RentalOrders]    Script Date: 16.08.2018 23:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[RentalOrders](
+	[RentalOrderID] [int] IDENTITY(1,1) NOT NULL,
+	[DateProcessed] [datetime] NULL,
+	[EmployeeID] [int] NOT NULL,
+	[CustomerID] [int] NOT NULL,
+	[CarID] [int] NOT NULL,
+	[TankLevel] [varchar](40) NULL,
+	[MileageStart] [int] NULL,
+	[MileageEnd] [int] NULL,
+	[RentStartDate] [datetime] NULL,
+	[RentEndDate] [datetime] NULL,
+	[Days]  AS (CONVERT([int],[RentEndDate]-[RentStartDate],(0))),
+	[RateApplied] [money] NULL,
+	[OrderTotal]  AS (CONVERT([money],[RateApplied]*CONVERT([int],[RentEndDate]-[RentStartDate],(0)),(0))),
+	[OrderStatus] [varchar](50) NULL,
+ CONSTRAINT [PK_RentalOrder] PRIMARY KEY CLUSTERED 
+(
+	[RentalOrderID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+/****** Object:  Table [dbo].[RentalRates]    Script Date: 16.08.2018 23:45:37 ******/
+SET ANSI_NULLS ON
+GO
+SET QUOTED_IDENTIFIER ON
+GO
+SET ANSI_PADDING ON
+GO
+CREATE TABLE [dbo].[RentalRates](
+	[RentalRateID] [int] IDENTITY(1,1) NOT NULL,
+	[Category] [varchar](50) NULL,
+	[Daily] [smallmoney] NULL,
+	[Weekly] [smallmoney] NULL,
+	[Monthly] [smallmoney] NULL,
+ CONSTRAINT [PK_RentalRates] PRIMARY KEY CLUSTERED 
+(
+	[RentalRateID] ASC
+)WITH (PAD_INDEX = OFF, STATISTICS_NORECOMPUTE = OFF, IGNORE_DUP_KEY = OFF, ALLOW_ROW_LOCKS = ON, ALLOW_PAGE_LOCKS = ON) ON [PRIMARY]
+) ON [PRIMARY]
+
+GO
+SET ANSI_PADDING OFF
+GO
+ALTER TABLE [dbo].[RentalOrders]  WITH CHECK ADD  CONSTRAINT [FK_Cars] FOREIGN KEY([CarID])
+REFERENCES [dbo].[Cars] ([CarID])
+GO
+ALTER TABLE [dbo].[RentalOrders] CHECK CONSTRAINT [FK_Cars]
+GO
+ALTER TABLE [dbo].[RentalOrders]  WITH CHECK ADD  CONSTRAINT [FK_Customers] FOREIGN KEY([CustomerID])
+REFERENCES [dbo].[Customers] ([CustomerID])
+GO
+ALTER TABLE [dbo].[RentalOrders] CHECK CONSTRAINT [FK_Customers]
+GO
+ALTER TABLE [dbo].[RentalOrders]  WITH CHECK ADD  CONSTRAINT [FK_Employees] FOREIGN KEY([EmployeeID])
+REFERENCES [dbo].[Employees] ([EmployeeID])
+GO
+ALTER TABLE [dbo].[RentalOrders] CHECK CONSTRAINT [FK_Employees]
+GO
