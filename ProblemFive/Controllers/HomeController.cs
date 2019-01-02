@@ -11,7 +11,7 @@ namespace ProblemFive.Controllers
     {
         public ActionResult Index()
         {
-            string password = "Burak";
+            string password = "altug";
           
 
             
