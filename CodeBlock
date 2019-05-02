@@ -61,3 +61,56 @@
             SetResultAsSuccess(ServiceResultCode.Success, Derindere.Common.Resources.DerindereResource.IslemBasarili);
 
         }
+
+
+  private decimal IkinciElFiyatHesaplaBase(bool aksesuarFiyatZorunlumu, string kaskoKodu, int vade, ButceKiralamaOpexConvertedDto opex, int km, decimal listeFiyati, decimal aksesuarFiyati, decimal anahtarTeslimMaliyet, DateTime ikinciElSatisTarihi, out bool nominalHesapMi, int markaId, decimal fiyatlamakuru, bool butceHesabimi)
+        {
+            nominalHesapMi = false;
+            var ikinciElListeFiyatiDeger = listeFiyati;
+            var ikinciElAksesuarFiyatiDeger = 0M;
+            ikinciElListeFiyatiDeger -= aksesuarFiyati;
+            ikinciElAksesuarFiyatiDeger = aksesuarFiyati;
+
+            var ikinciElOranVade = vade > 60 ? 60 : vade;
+            var ikinciElOran = opex.ikinciElList.First(p => p.Ay == ikinciElOranVade && p.SilindiMi == false);
+            decimal grupSatisOrani = ikinciElOran.GrupOran;
+            decimal aracSatisDegerOrani = ikinciElOran.AracOran;
+            decimal aksesuarSatisDegerOrani = ikinciElOran.AksesuarOran;
+            if (grupSatisOrani == 0) grupSatisOrani = 1;
+            if (aracSatisDegerOrani == 0) aracSatisDegerOrani = 100;
+            if (aksesuarSatisDegerOrani == 0) aksesuarSatisDegerOrani = 100;
+
+            ikinciElListeFiyatiDeger = ikinciElListeFiyatiDeger * ((grupSatisOrani * (aracSatisDegerOrani / 100)));
+
+            ikinciElAksesuarFiyatiDeger = (aksesuarSatisDegerOrani / 100) * ikinciElAksesuarFiyatiDeger;
+
+            if (markaId != GenelSabitler.FiyatlamaRenaultMarkaId)
+            {
+                var ikinciElKmDegisiOran = opex.ikinciElAsim.FirstOrDefault(p => (p.BaslangicKm <= km && p.BitisKm >= km) && (p.BaslangicVade <= ikinciElOranVade && p.BitisVade >= ikinciElOranVade));
+
+                if (ikinciElKmDegisiOran == null && km > 250000)
+                    ikinciElKmDegisiOran = opex.ikinciElAsim.Where(p => (p.BaslangicVade <= ikinciElOranVade && p.BitisVade >= ikinciElOranVade)).OrderByDescending(p => p.BaslangicKm).FirstOrDefault();
+
+                if (ikinciElKmDegisiOran == null) throw new Exception();
+
+                if (ikinciElKmDegisiOran.Oran == 0) ikinciElKmDegisiOran.Oran = 100;
+
+                ikinciElListeFiyatiDeger = ikinciElListeFiyatiDeger * (ikinciElKmDegisiOran.Oran / 100);
+            }
+
+            decimal ikinciElToplamFiyat = Math.Round(ikinciElListeFiyatiDeger + ikinciElAksesuarFiyatiDeger, 2);
+
+            if (butceHesabimi)
+            {
+                var nominalSatis = opex.nominaldegerler.Where(p => p.MaksimumSatisTarihi > ikinciElSatisTarihi).FirstOrDefault();
+                if (nominalSatis != null)
+                {
+                    nominalHesapMi = true;
+                    ikinciElToplamFiyat = nominalSatis.NominalSatisFiyati / fiyatlamakuru;
+                    return Math.Round(ikinciElToplamFiyat, 4);//udm 18856
+                }
+            }
+
+            return Math.Round(anahtarTeslimMaliyet < ikinciElToplamFiyat ? anahtarTeslimMaliyet : ikinciElToplamFiyat, 4);
+
+        }
