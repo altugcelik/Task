@@ -1,0 +1,63 @@
+ public void IkinciElOdemePlaniBekleyenProjeleriOdemePlaninaGonder()
+        {
+            var odemePlaniBekleyenAraclar = UnitOfWork.DbSession.ProjeFiyatlari
+                .Where(p => p.SilindiMi == false
+            && p.AktifMi == true
+            && p.Proje.SilindiMi == false
+            && p.Proje.AktifMi
+            && p.Proje.ProjeDurumuId == DurumSabitleri.UzatmaOdemePlaniBekliyor).Select(p => new
+            {
+                DrdAracId = p.TalepEdilenAracFiyati.TalepEdilenArac.DrdAracId.Value,
+                ProjeFiyatiId = p.Id,
+                p.TalepEdilenAracFiyati.KiraBedeli,
+                p.TalepEdilenAracFiyati.KmAsimBedeli,
+                p.TalepEdilenAracFiyati.ParaBirimiId,
+                SozlesmeId = p.Proje.Sozlesmeler.FirstOrDefault(x => x.AktifMi == true && x.SilindiMi == false).Id,
+                p.TalepEdilenAracFiyati.YillikKmLimiti,
+                Vade = p.TalepEdilenAracFiyati.Vade.Deger,
+                FirmaId = p.Proje.FirmaId,
+                p.ProjeId
+            }).ToList();
+
+            foreach (var bekleyenArac in odemePlaniBekleyenAraclar)
+            {
+                if (DrdAracOdenmemisFaturasiVarmi(bekleyenArac.DrdAracId, bekleyenArac.ProjeId)) continue;
+
+                if (DrdAracTeslimEdilmisOdemePlaniBekliyorMu(bekleyenArac.DrdAracId, bekleyenArac.ProjeFiyatiId))
+                {
+                    ProjeTeslimatKontrol(bekleyenArac.ProjeId);
+                    continue;
+                }
+
+                var faturaDetay = DrdAracSonKesilmisKiraFaturasi(bekleyenArac.DrdAracId);
+
+                var teslimTarihi = faturaDetay.BitisTarihi.Value;
+
+                DrdAracSozlesmeDetayPasifle(bekleyenArac.DrdAracId, faturaDetay.BitisTarihi.Value);
+
+                SozlesmeDetayOlustur(new CreateSozlesmeDetayItemDto()
+                {
+                    DrdAracId = bekleyenArac.DrdAracId,
+                    ProjeFiyatiId = bekleyenArac.ProjeFiyatiId,
+                    KiraBedeli = bekleyenArac.KiraBedeli,
+                    KmAsimBedeli = bekleyenArac.KmAsimBedeli,
+                    SozlesmeId = bekleyenArac.SozlesmeId,
+                    TeslimTarihi = teslimTarihi,
+                    YillikKm = bekleyenArac.YillikKmLimiti,
+                    ParaBirimiId = bekleyenArac.ParaBirimiId,
+                    Vade = bekleyenArac.Vade,
+                    FirmaId = bekleyenArac.FirmaId
+                });
+
+                DrdAracIkinciElStokAsamasinaGetir(bekleyenArac.DrdAracId);
+
+                DrdAracTeslimAsamasinaGetir(bekleyenArac.DrdAracId, teslimTarihi, bekleyenArac.ProjeFiyatiId);
+
+                ProjeTeslimatKontrol(bekleyenArac.ProjeId);
+
+            }
+
+
+            SetResultAsSuccess(ServiceResultCode.Success, Derindere.Common.Resources.DerindereResource.IslemBasarili);
+
+        }
